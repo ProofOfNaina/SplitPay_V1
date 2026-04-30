@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* SplitPay — light, airy fintech */
+    --background: 210 40% 98%;
+    --foreground: 230 30% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 230 30% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 30% 12%;
+
+    /* Arc-inspired mint, slightly deeper for light bg */
+    --primary: 160 84% 36%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 160 90% 55%;
+
+    --secondary: 220 25% 94%;
+    --secondary-foreground: 230 30% 18%;
+
+    --muted: 220 25% 95%;
+    --muted-foreground: 230 12% 42%;
+
+    --accent: 200 95% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 78% 52%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 70% 38%;
+    --warning: 32 95% 50%;
+
+    --border: 220 20% 88%;
+    --input: 220 20% 90%;
+    --ring: 160 84% 36%;
+    --radius: 1rem;
+
+    --gradient-primary: linear-gradient(135deg, hsl(160 84% 40%), hsl(200 95% 50%));
+    --gradient-hero: radial-gradient(ellipse at top, hsl(160 84% 55% / 0.18), transparent 60%),
+                     radial-gradient(ellipse at bottom right, hsl(200 95% 60% / 0.18), transparent 55%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 30% 97%));
+
+    --shadow-glow: 0 10px 50px -10px hsl(160 84% 40% / 0.35);
+    --shadow-elegant: 0 20px 50px -25px hsl(220 40% 30% / 0.18);
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html, body, #root { @apply h-full; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-image:
+      radial-gradient(ellipse at 20% -10%, hsl(160 84% 55% / 0.10), transparent 50%),
+      radial-gradient(ellipse at 90% 10%, hsl(200 95% 60% / 0.10), transparent 50%);
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-card/70 backdrop-blur-xl border border-border/70 shadow-sm;
+  }
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .grid-bg {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.7) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.7) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  }
+}
