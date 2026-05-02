@@ -13,6 +13,7 @@ async function call(action: string, wallet: string, sign: SignFn, payload: Recor
     headers: {
       "Content-Type": "application/json",
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
     body: JSON.stringify({ wallet, signature, timestamp, payload }),
   });

@@ -10,9 +10,11 @@ import MySplits from "./pages/MySplits";
 import SplitDetail from "./pages/SplitDetail";
 import HowItWorks from "./pages/HowItWorks";
 import NotFound from "./pages/NotFound.tsx";
+import { UserSync } from "./components/UserSync";
 
 const App = () => (
   <WalletProvider>
+    <UserSync />
     <TooltipProvider>
       <Toaster />
       <Sonner theme="dark" />

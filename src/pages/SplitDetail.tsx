@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useAccount, useChainId, useSendTransaction, useSwitchChain } from "wagmi";
 import { parseEther } from "viem";
@@ -34,27 +34,34 @@ export default function SplitDetail() {
   const sign = useSigner();
   const { sendTransactionAsync } = useSendTransaction();
   const [split, setSplit] = useState<Split | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualHash, setManualHash] = useState("");
   const [manualSubmitting, setManualSubmitting] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!id) return;
-    const load = async () => {
-      const { data } = await supabase
-        .from("splits")
-        .select("*, participants(*)")
-        .eq("id", id)
-        .single();
-      if (data) {
-        const sorted = { ...(data as any) };
-        sorted.participants = [...(data as any).participants].sort((a: any, b: any) =>
-          a.created_at.localeCompare(b.created_at),
-        );
-        setSplit(sorted as any);
+    try {
+      const { data, error } = await supabase.rpc('get_split_by_id', { p_id: id });
+      if (error) {
+        console.error("Error loading split:", error);
+        setError("Failed to load split details.");
+        return;
       }
-    };
+      if (!data) {
+        setError("Split not found.");
+        return;
+      }
+      setSplit(data as any);
+      setError(null);
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      setError("An unexpected error occurred.");
+    }
+  }, [id]);
+
+  useEffect(() => {
     load();
     const ch = supabase
       .channel(`split-${id}`)
@@ -70,12 +77,17 @@ export default function SplitDetail() {
       )
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [id]);
+  }, [id, load]);
 
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-  const qrUrl = useMemo(
-    () => `https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=0F1118&color=10F5A3&data=${encodeURIComponent(shareUrl)}`,
-    [shareUrl],
+
+  if (error) return (
+    <div className="container mx-auto py-32 text-center">
+      <div className="text-4xl mb-4">⚠️</div>
+      <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
+      <p className="text-muted-foreground mb-6">{error}</p>
+      <Button onClick={() => window.location.reload()}>Try Again</Button>
+    </div>
   );
 
   if (!split) return (
@@ -120,7 +132,14 @@ export default function SplitDetail() {
       toast.loading("Verifying transaction on Arc…", { id: "pay" });
       // Sign & report — backend re-checks the tx on-chain
       await api.markPaid(address, sign, p.id, hash);
-      toast.success("Payment verified on-chain ✓", { id: "pay" });
+      await load();
+      toast.success("Payment verified on-chain ✓", { 
+        id: "pay",
+        action: {
+          label: "View Transaction",
+          onClick: () => window.open(`${arcTestnet.blockExplorers.default.url}/tx/${hash}`, "_blank")
+        }
+      });
     } catch (e: any) {
       toast.error(e?.shortMessage || e?.message || "Payment failed", { id: "pay" });
     } finally {
@@ -135,9 +154,16 @@ export default function SplitDetail() {
     }
     setManualSubmitting(true);
     try {
-      toast.loading("Verifying on Arc…", { id: "man" });
-      await api.markPaid(address, sign, myParticipant.id, manualHash.trim());
-      toast.success("Verified ✓", { id: "man" });
+      const hash = manualHash.trim();
+      await api.markPaid(address, sign, myParticipant.id, hash);
+      await load();
+      toast.success("Verified ✓", { 
+        id: "man",
+        action: {
+          label: "View",
+          onClick: () => window.open(`${arcTestnet.blockExplorers.default.url}/tx/${hash}`, "_blank")
+        }
+      });
       setManualOpen(false);
       setManualHash("");
     } catch (e: any) {
@@ -195,12 +221,9 @@ export default function SplitDetail() {
               <DialogHeader>
                 <DialogTitle className="text-2xl">Invite your friends</DialogTitle>
                 <DialogDescription>
-                  Share the link or QR. Anyone with the link can pay their share — no signup required.
+                  Share this link with your friends — anyone with the link can pay their share instantly.
                 </DialogDescription>
               </DialogHeader>
-              <div className="rounded-2xl bg-card/60 p-5 grid place-items-center">
-                <img src={qrUrl} alt="Split QR code" className="rounded-xl" width={200} height={200} loading="lazy" />
-              </div>
               <div className="flex gap-2">
                 <Input value={shareUrl} readOnly className="bg-background/50 font-mono text-xs" />
                 <Button onClick={copyLink} className="bg-gradient-primary text-primary-foreground shrink-0">
@@ -312,13 +335,25 @@ export default function SplitDetail() {
                   <div className="text-xs text-muted-foreground font-mono truncate flex items-center gap-2 mt-0.5">
                     {short(p.wallet_address)}
                     {p.tx_hash && (
-                      <a
-                        href={`${arcTestnet.blockExplorers.default.url}/tx/${p.tx_hash}`}
-                        target="_blank" rel="noreferrer"
-                        className="text-primary inline-flex items-center hover:underline"
-                      >
-                        view tx <ExternalLink className="h-3 w-3 ml-0.5" />
-                      </a>
+                      <div className="flex items-center gap-2 mt-1">
+                        <a
+                          href={`${arcTestnet.blockExplorers.default.url}/tx/${p.tx_hash}`}
+                          target="_blank" rel="noreferrer"
+                          className="text-primary inline-flex items-center hover:underline"
+                        >
+                          View in Explorer <ExternalLink className="h-3 w-3 ml-1" />
+                        </a>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(p.tx_hash!);
+                            toast.success("Transaction hash copied");
+                          }}
+                          className="p-1 hover:bg-primary/10 rounded transition-colors"
+                          title="Copy transaction hash"
+                        >
+                          <Copy className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

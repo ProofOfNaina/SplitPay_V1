@@ -22,32 +22,18 @@ export default function MySplits() {
     if (!address) { setLoading(false); return; }
     const me = address.toLowerCase();
     (async () => {
-      // splits I created
-      const { data: mine } = await supabase
-        .from("splits")
-        .select("*, participants(status, wallet_address, amount)")
-        .eq("payer_wallet", me)
-        .order("created_at", { ascending: false });
-      // splits I'm a participant in
-      const { data: parts } = await supabase
-        .from("participants")
-        .select("split_id")
-        .eq("wallet_address", me);
-      const ids = [...new Set((parts ?? []).map((p) => p.split_id))];
-      let owed: Split[] = [];
-      if (ids.length) {
-        const { data } = await supabase
-          .from("splits")
-          .select("*, participants(status, wallet_address, amount)")
-          .in("id", ids)
-          .order("created_at", { ascending: false });
-        owed = (data ?? []) as any;
+      try {
+        const { data, error } = await supabase.rpc('list_splits_for_wallet', { p_wallet: me });
+        if (error) {
+          console.error("Error loading splits:", error);
+        } else {
+          setSplits((data as any) || []);
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      } finally {
+        setLoading(false);
       }
-      const all = [...((mine ?? []) as any), ...owed].filter(
-        (s, i, arr) => arr.findIndex((x) => x.id === s.id) === i
-      );
-      setSplits(all);
-      setLoading(false);
     })();
   }, [address]);
 
