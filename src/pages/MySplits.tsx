@@ -37,7 +37,7 @@ export default function MySplits() {
     })();
   }, [address]);
 
-  if (!isConnected) {
+  if (!address) {
     return (
       <Empty
         title="Connect your wallet"
