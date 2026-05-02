@@ -1,4 +1,4 @@
-import { Sparkles, Github, Heart } from "lucide-react";
+import { Sparkles, Github } from "lucide-react";
 import { ArcNetworkHelp } from "./ArcNetworkHelp";
 
 export function Footer() {
@@ -46,9 +46,7 @@ export function Footer() {
             rel="noreferrer"
             className="group inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
           >
-            Designed & developed with
-            <Heart className="h-3 w-3 text-destructive group-hover:scale-110 transition-transform" />
-            by
+            Designed & developed by
             <span className="font-semibold gradient-text">proofofnaina</span>
             <Github className="h-3.5 w-3.5" />
           </a>
