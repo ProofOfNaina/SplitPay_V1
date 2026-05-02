@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { useAccount } from "wagmi";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Inbox, Plus, ArrowUpRight } from "lucide-react";
+import { Inbox, Plus, ArrowUpRight, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 type Split = {
@@ -14,12 +14,21 @@ type Split = {
 };
 
 export default function MySplits() {
-  const { address, isConnected } = useAccount();
+  const { authenticated, user, ready } = usePrivy();
+  const { wallets } = useWallets();
   const [splits, setSplits] = useState<Split[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const address = user?.wallet?.address || wallets[0]?.address;
+
   useEffect(() => {
-    if (!address) { setLoading(false); return; }
+    if (!ready) return;
+    if (!authenticated || !address) {
+      setSplits([]);
+      setLoading(false);
+      return;
+    }
+    
     const me = address.toLowerCase();
     (async () => {
       try {
@@ -35,9 +44,13 @@ export default function MySplits() {
         setLoading(false);
       }
     })();
-  }, [address]);
+  }, [address, authenticated, ready]);
 
-  if (!address) {
+  if (!ready) {
+    return <div className="container mx-auto py-20 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>;
+  }
+
+  if (!authenticated || !address) {
     return (
       <Empty
         title="Connect your wallet"
